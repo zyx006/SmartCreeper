@@ -47,7 +47,7 @@ public class EntityAISmartExplode extends EntityAIBase {
         this.targetPos = findNearestTargetBlock();
 
         if (this.targetPos != null) {
-            this.searchCooldown = 40; // 2秒冷却，减少性能消耗
+            this.searchCooldown = 20; // 1秒冷却，减少性能消耗
             return true;
         }
 
@@ -63,6 +63,7 @@ public class EntityAISmartExplode extends EntityAIBase {
 
         if (!cats.isEmpty() && !this.creeper.getPowered()) {
             this.creeper.onStruckByLightning(null); // 变成高压苦力怕
+            this.creeper.setHealth(this.creeper.getMaxHealth());
             this.isChargedByCat = true;
 
             // 重置寻路以立即响应新状态

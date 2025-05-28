@@ -6,6 +6,7 @@ import net.minecraft.entity.monster.EntityCreeper;
 import net.minecraft.entity.passive.EntityOcelot;
 import net.minecraftforge.event.entity.EntityJoinWorldEvent;
 import net.minecraftforge.fml.common.ObfuscationReflectionHelper;
+import net.minecraftforge.fml.common.eventhandler.EventPriority;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 
 import java.lang.reflect.Field;
@@ -61,7 +62,7 @@ public class CreeperAIModifier {
         net.minecraftforge.common.MinecraftForge.EVENT_BUS.register(new CreeperAIModifier());
     }
 
-    @SubscribeEvent
+    @SubscribeEvent(priority = EventPriority.LOWEST)
     public void onEntitySpawn(EntityJoinWorldEvent event) {
         if (event.getEntity() instanceof EntityCreeper) {
             EntityCreeper creeper = (EntityCreeper) event.getEntity();
