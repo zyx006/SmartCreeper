@@ -60,7 +60,7 @@ public class SmartCreeper {
         // 读取通配符mod列表
         String[] defaultWildcardMods = {
                 "appliedenergistics2",
-                "industrialcraft2",
+                "ic2",
                 "thermalexpansion",
                 "enderio"
         };
