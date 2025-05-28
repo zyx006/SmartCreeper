@@ -1,21 +1,11 @@
-## TemplateDevEnv
-_For Kotlin see [TemplateDevEnvKt](https://github.com/CleanroomMC/TemplateDevEnvKt)_
+## 智慧苦力怕 Smart Creeper
 
-Template workspace for modding Minecraft 1.12.2. Licensed under MIT, it is made for public use.
+For Minecraft 1.12.2
 
-This template runs on Java 21! Currently utilizies **Gradle 8.12** + **[RetroFuturaGradle](https://github.com/GTNewHorizons/RetroFuturaGradle) 1.4.1** + **Forge 14.23.5.2847**.
+修改苦力怕的AI逻辑，现在会优先攻击容器类方块（如箱子、机器，可配置）
 
-With **coremod and mixin support** that is easy to configure.
+遇见猫时不再会逃跑，而是转变为高压苦力怕（可配置）
 
-### Instructions:
+允许配置搜索范围、精确指定攻击某个方块、通配指定攻击某模组的所有容器类方块
 
-1. Click `use this template` at the top.
-2. Clone the repository that you have created with this template to your local machine.
-3. Make sure IDEA is using Java 21 for Gradle before you sync the project. Verify this by going to IDEA's `Settings > Build, Execution, Deployment > Build Tools > Gradle > Gradle JVM`.
-4. Open the project folder in IDEA. When prompted, click "Load Gradle Project" as it detects the `build.gradle`, if you weren't prompted, right-click the project's `build.gradle` in IDEA, select `Link Gradle Project`, after completion, hit `Refresh All` in the gradle tab on the right.
-5. Run gradle tasks such as `runClient` and `runServer` in the IDEA gradle tab, or use the auto-imported run configurations like `1. Run Client`.
-
-### Notes:
-- Dependencies script in [gradle/scripts/dependencies.gradle](gradle/scripts/dependencies.gradle), explanations are commented in the file.
-- Publishing script in [gradle/scripts/publishing.gradle](gradle/scripts/publishing.gradle).
-- When writing Mixins on IntelliJ, it is advisable to use latest [MinecraftDev Fork for RetroFuturaGradle](https://github.com/eigenraven/MinecraftDev/releases).
+默认会攻击原版的箱子、熔炉等方块，以及ae2、ic2、热力、eio模组的容器类方块，可在配置文件中修改
