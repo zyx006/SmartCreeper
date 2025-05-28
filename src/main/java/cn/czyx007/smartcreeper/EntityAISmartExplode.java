@@ -64,6 +64,9 @@ public class EntityAISmartExplode extends EntityAIBase {
         if (!cats.isEmpty() && !this.creeper.getPowered()) {
             this.creeper.onStruckByLightning(null); // 变成高压苦力怕
             this.creeper.setHealth(this.creeper.getMaxHealth());
+            this.creeper.isDead = false;
+            this.creeper.deathTime = 0;
+            this.creeper.hurtResistantTime = 0;
             this.isChargedByCat = true;
 
             // 重置寻路以立即响应新状态
@@ -187,6 +190,7 @@ public class EntityAISmartExplode extends EntityAIBase {
 
     @Override
     public void resetTask() {
+        CreeperAIModifier.removeAI(this);
         this.targetPos = null;
         this.creeper.getNavigator().clearPath();
     }
@@ -274,5 +278,13 @@ public class EntityAISmartExplode extends EntityAIBase {
         }
 
         return isContainer;
+    }
+
+    public EntityCreeper getCreeper() {
+        return this.creeper;
+    }
+
+    public BlockPos getTargetPos() {
+        return this.targetPos;
     }
 }
