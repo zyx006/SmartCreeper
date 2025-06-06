@@ -1,25 +1,11 @@
+## 智慧苦力怕 Smart Creeper
 
-Installation information
-=======
+For Minecraft 1.21.1 NeoForge (generated from [NeoForgeMDKs/MDK-1.21.1-ModDevGradle](https://github.com/NeoForgeMDKs/MDK-1.21.1-ModDevGradle))
 
-This template repository can be directly cloned to get you started with a new
-mod. Simply create a new repository cloned from this one, by following the
-instructions provided by [GitHub](https://docs.github.com/en/repositories/creating-and-managing-repositories/creating-a-repository-from-a-template).
+修改苦力怕的AI逻辑，现在会优先攻击容器类方块（如箱子、机器，可配置）
 
-Once you have your clone, simply open the repository in the IDE of your choice. The usual recommendation for an IDE is either IntelliJ IDEA or Eclipse.
+遇见猫时不再会逃跑，而是转变为高压苦力怕（可配置）
 
-If at any point you are missing libraries in your IDE, or you've run into problems you can
-run `gradlew --refresh-dependencies` to refresh the local cache. `gradlew clean` to reset everything 
-{this does not affect your code} and then start the process again.
+允许配置搜索范围、精确指定攻击某个方块、通配指定攻击某模组的所有容器类方块
 
-Mapping Names:
-============
-By default, the MDK is configured to use the official mapping names from Mojang for methods and fields 
-in the Minecraft codebase. These names are covered by a specific license. All modders should be aware of this
-license. For the latest license text, refer to the mapping file itself, or the reference copy here:
-https://github.com/NeoForged/NeoForm/blob/main/Mojang.md
-
-Additional Resources: 
-==========
-Community Documentation: https://docs.neoforged.net/  
-NeoForged Discord: https://discord.neoforged.net/
+默认会攻击原版的箱子、熔炉等方块，以及ae2、热力、eio、mek模组的容器类方块，可在配置文件中修改
