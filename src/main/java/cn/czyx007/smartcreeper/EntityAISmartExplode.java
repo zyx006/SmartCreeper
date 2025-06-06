@@ -7,24 +7,18 @@ import net.minecraft.entity.passive.EntityOcelot;
 import net.minecraft.inventory.IInventory;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.World;
+import net.minecraft.world.chunk.Chunk;
 
-import java.util.ArrayDeque;
-import java.util.HashSet;
-import java.util.Queue;
-import java.util.Set;
 import java.util.List;
+import java.util.Map;
 
 public class EntityAISmartExplode extends EntityAIBase {
     private final EntityCreeper creeper;
     private final World world;
     private BlockPos targetPos = null;
-    private int searchCooldown = 0;
     private boolean isChargedByCat = false;
-
-    // 用于优化搜索的缓存
-    private Set<BlockPos> searchedPositions = new HashSet<>();
-    private int lastSearchTick = 0;
 
     public EntityAISmartExplode(EntityCreeper creeper) {
         this.creeper = creeper;
@@ -37,21 +31,9 @@ public class EntityAISmartExplode extends EntityAIBase {
         // 始终检查猫的交互（无论是否在执行其他任务）
         checkForCat();
 
-        // 冷却时间检查
-        if (this.searchCooldown > 0) {
-            this.searchCooldown--;
-            return this.targetPos != null; // 如果已有目标则继续执行
-        }
-
         // 查找目标方块
         this.targetPos = findNearestTargetBlock();
-
-        if (this.targetPos != null) {
-            this.searchCooldown = 20; // 1秒冷却，减少性能消耗
-            return true;
-        }
-
-        return false;
+        return this.targetPos != null;
     }
 
     private void checkForCat() {
@@ -71,8 +53,6 @@ public class EntityAISmartExplode extends EntityAIBase {
 
             // 重置寻路以立即响应新状态
             this.creeper.getNavigator().clearPath();
-            this.searchCooldown = 0; // 立即重新搜索
-            this.searchedPositions.clear(); // 清除搜索缓存
         }
     }
 
@@ -84,62 +64,47 @@ public class EntityAISmartExplode extends EntityAIBase {
         int range = this.isChargedByCat ? SmartCreeper.chargedSearchRange : SmartCreeper.normalSearchRange;
         BlockPos center = new BlockPos(this.creeper);
 
-        // 如果与上次搜索位置相同且时间间隔较短，使用缓存
-        int currentTick = this.creeper.ticksExisted;
-        if (Math.abs(currentTick - this.lastSearchTick) < 20 && this.searchedPositions.contains(center)) {
-            return null; // 避免频繁搜索同一区域
-        }
+        BlockPos nearestPos = null;
+        double minDistance = Double.MAX_VALUE;
 
-        this.lastSearchTick = currentTick;
+        // 计算需要搜索的区块范围
+        int chunkRange = (range + 15) / 16; // 将方块范围转换为区块范围
+        ChunkPos centerChunk = new ChunkPos(center);
 
-        // 使用BFS进行搜索，优先找到最近的目标
-        Queue<BlockPos> queue = new ArrayDeque<>();
-        Set<BlockPos> visited = new HashSet<>();
+        // 搜索周围区块
+        for (int dx = -chunkRange; dx <= chunkRange; dx++) {
+            for (int dz = -chunkRange; dz <= chunkRange; dz++) {
+                Chunk chunk = this.creeper.world.getChunk(
+                        centerChunk.x + dx,
+                        centerChunk.z + dz
+                );
 
-        queue.offer(center);
-        visited.add(center);
+                // 获取区块内所有方块实体位置
+                Map<BlockPos, TileEntity> chunkTileEntities = chunk.getTileEntityMap();
+                for (Map.Entry<BlockPos, TileEntity> entry : chunkTileEntities.entrySet()) {
+                    BlockPos pos = entry.getKey();
 
-        // 定义6个方向的搜索（上下左右前后）
-        int[][] directions = {
-                {1, 0, 0}, {-1, 0, 0},
-                {0, 1, 0}, {0, -1, 0},
-                {0, 0, 1}, {0, 0, -1}
-        };
+                    // 检查是否在Y轴范围内
+                    if (Math.abs(pos.getY() - center.getY()) > 3) {
+                        continue;
+                    }
 
-        while (!queue.isEmpty()) {
-            BlockPos current = queue.poll();
+                    // 检查是否在搜索范围内
+                    if (pos.distanceSq(center.getX(), center.getY(), center.getZ()) > range * range) {
+                        continue;
+                    }
 
-            // 检查当前位置是否是目标方块
-            if (isTargetBlock(current)) {
-                this.searchedPositions.add(center);
-                return current;
-            }
-
-            // 扩展搜索到邻近位置
-            for (int[] dir : directions) {
-                BlockPos neighbor = current.add(dir[0], dir[1], dir[2]);
-
-                // 检查是否在搜索范围内
-                if (Math.abs(neighbor.getX() - center.getX()) > range ||
-                        Math.abs(neighbor.getY() - center.getY()) > 3 ||
-                        Math.abs(neighbor.getZ() - center.getZ()) > range) {
-                    continue;
-                }
-
-                if (!visited.contains(neighbor)) {
-                    visited.add(neighbor);
-                    queue.offer(neighbor);
+                    if (isTargetBlock(pos)) {
+                        double distance = pos.distanceSq(center.getX(), center.getY(), center.getZ());
+                        if (distance < minDistance) {
+                            minDistance = distance;
+                            nearestPos = pos;
+                        }
+                    }
                 }
             }
-
-            // 限制搜索深度以避免性能问题
-            if (visited.size() > range * range * 6) {
-                break;
-            }
         }
-
-        this.searchedPositions.add(center);
-        return null;
+        return nearestPos;
     }
 
     @Override
@@ -151,8 +116,8 @@ public class EntityAISmartExplode extends EntityAIBase {
             return false;
         }
 
-        // 使用原版的判断距离（约8-10格）
-        double maxDist = 100.0; // 10格距离
+        int range = this.isChargedByCat ? SmartCreeper.chargedSearchRange : SmartCreeper.normalSearchRange;
+        double maxDist = range * range;
         return this.creeper.getDistanceSqToCenter(this.targetPos) < maxDist;
     }
 
@@ -190,7 +155,6 @@ public class EntityAISmartExplode extends EntityAIBase {
 
     @Override
     public void resetTask() {
-        CreeperAIModifier.removeAI(this);
         this.targetPos = null;
         this.creeper.getNavigator().clearPath();
     }
@@ -216,9 +180,7 @@ public class EntityAISmartExplode extends EntityAIBase {
             String modId = blockId.split(":")[0].toLowerCase();
             if (SmartCreeper.wildcardMods.contains(modId)) {
                 // 只有是容器类方块才被选中
-                if (isContainerBlock(pos)) {
-                    return true;
-                }
+                return isContainerBlock(pos);
             }
         }
 
