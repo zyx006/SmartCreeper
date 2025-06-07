@@ -57,7 +57,7 @@ public class EntityAISmartExplode extends EntityAIBase {
     }
 
     /**
-     * 使用广度优先搜索算法优化寻找最近目标方块的效率
+     * 寻找最近目标方块
      */
     private BlockPos findNearestTargetBlock() {
         // 确定搜索范围
