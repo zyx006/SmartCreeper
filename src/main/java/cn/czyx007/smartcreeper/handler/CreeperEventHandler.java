@@ -1,18 +1,32 @@
-package cn.czyx007.smartcreeper;
+package cn.czyx007.smartcreeper.handler;
 
+import cn.czyx007.smartcreeper.Config;
+import cn.czyx007.smartcreeper.SmartCreeper;
+import cn.czyx007.smartcreeper.goal.EndermanCarryContainerGoal;
+import cn.czyx007.smartcreeper.goal.SkeletonShootContainerGoal;
+import cn.czyx007.smartcreeper.goal.SmartExplodeGoal;
+import cn.czyx007.smartcreeper.goal.ZombieBreakContainerGoal;
+import cn.czyx007.smartcreeper.util.ContainerTargetUtils;
+import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.ai.goal.AvoidEntityGoal;
 import net.minecraft.world.entity.ai.goal.Goal;
 import net.minecraft.world.entity.ai.goal.WrappedGoal;
 import net.minecraft.world.entity.animal.Cat;
+import net.minecraft.world.entity.monster.AbstractSkeleton;
 import net.minecraft.world.entity.monster.Creeper;
+import net.minecraft.world.entity.monster.EnderMan;
+import net.minecraft.world.entity.monster.Zombie;
+import net.minecraft.world.entity.projectile.AbstractArrow;
 import net.minecraft.world.level.Explosion;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.HitResult;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.event.entity.EntityJoinLevelEvent;
+import net.neoforged.neoforge.event.entity.ProjectileImpactEvent;
 import net.neoforged.neoforge.event.level.ExplosionEvent;
 
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-
 public class CreeperEventHandler {
     private static final Set<SmartExplodeGoal> activeGoals = ConcurrentHashMap.newKeySet();
 
@@ -20,6 +34,42 @@ public class CreeperEventHandler {
     public void onEntityJoinLevel(EntityJoinLevelEvent event) {
         if (event.getEntity() instanceof Creeper creeper) {
             modifyCreeperAI(creeper);
+        } else if (event.getEntity() instanceof AbstractSkeleton skeleton) {
+            modifySkeletonAI(skeleton);
+        } else if (event.getEntity() instanceof EnderMan enderman) {
+            modifyEndermanAI(enderman);
+        } else if (event.getEntity() instanceof Zombie zombie) {
+            modifyZombieAI(zombie);
+        }
+    }
+
+    @SubscribeEvent
+    public void onProjectileImpact(ProjectileImpactEvent event) {
+        if (event.getProjectile() instanceof AbstractArrow arrow &&
+                event.getRayTraceResult().getType() == HitResult.Type.BLOCK) {
+
+            // 检查是否是骷髅射向容器的箭
+            if (arrow.getPersistentData().contains("smartcreeper_target")) {
+                String target = arrow.getPersistentData().getString("smartcreeper_target");
+                if ("container".equals(target)) {
+                    BlockHitResult blockHit = (BlockHitResult) event.getRayTraceResult();
+                    BlockPos hitPos = blockHit.getBlockPos();
+
+                    // 检查击中的是否为目标容器
+                    if (ContainerTargetUtils.isTargetBlock(arrow.level(), hitPos)) {
+                        boolean containerDestroyed = ContainerHitHandler.recordHit(arrow.level(), hitPos);
+
+                        // 只有容器被破坏时才移除箭矢
+                        if (containerDestroyed) {
+                            arrow.discard();
+                        }
+                    } else {
+                        // 不是目标容器时正常处理箭矢
+                        arrow.setNoPhysics(false);
+                        arrow.pickup = AbstractArrow.Pickup.ALLOWED;
+                    }
+                }
+            }
         }
     }
 
@@ -64,6 +114,24 @@ public class CreeperEventHandler {
         SmartExplodeGoal smartGoal = new SmartExplodeGoal(creeper);
         creeper.goalSelector.addGoal(3, smartGoal);
         activeGoals.add(smartGoal);
+    }
+
+    private void modifySkeletonAI(AbstractSkeleton skeleton) {
+        // 添加射击容器的AI
+        if (Config.SKELETON_TARGET_CONTAINERS.get())
+            skeleton.goalSelector.addGoal(2, new SkeletonShootContainerGoal(skeleton));
+    }
+
+    private void modifyEndermanAI(EnderMan enderman) {
+        // 添加搬运容器的AI
+        if (Config.ENDERMAN_CARRY_CONTAINERS.get())
+            enderman.goalSelector.addGoal(2, new EndermanCarryContainerGoal(enderman));
+    }
+
+    private void modifyZombieAI(Zombie zombie) {
+        // 添加破坏容器的AI
+        if (Config.ZOMBIE_BREAK_CONTAINERS.get())
+            zombie.goalSelector.addGoal(2, new ZombieBreakContainerGoal(zombie));
     }
 
     private boolean shouldRemoveCatFearAI(AvoidEntityGoal<?> avoidGoal) {
