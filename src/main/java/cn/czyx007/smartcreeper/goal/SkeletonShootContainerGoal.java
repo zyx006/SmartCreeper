@@ -8,6 +8,7 @@ import net.minecraft.entity.projectile.EntityArrow;
 import net.minecraft.entity.projectile.EntityTippedArrow;
 import net.minecraft.init.SoundEvents;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.RayTraceResult;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 
@@ -88,12 +89,52 @@ public class SkeletonShootContainerGoal extends EntityAIBase {
             this.shootCooldown--;
         }
 
-        // 射击（只要在射程内）
+        // 射击（必须射程内 + 有视线）
         if (this.shootCooldown <= 0 && distance <= maxDistance) {
-            shootAtTarget();
-            this.shootCooldown = Config.SKELETON_SHOOT_COOLDOWN;
-            this.lastShootTime = this.skeleton.ticksExisted;
+            Vec3d skeletonEye = new Vec3d(
+                    this.skeleton.posX,
+                    this.skeleton.posY + this.skeleton.getEyeHeight(),
+                    this.skeleton.posZ
+            );
+            Vec3d targetCenter = new Vec3d(
+                    this.targetPos.getX() + 0.5,
+                    this.targetPos.getY() + 0.5,
+                    this.targetPos.getZ() + 0.5
+            );
+
+            if (hasLineOfSight(skeletonEye, targetCenter)) {
+                shootAtTarget();
+                this.shootCooldown = Config.SKELETON_SHOOT_COOLDOWN;
+                this.lastShootTime = this.skeleton.ticksExisted;
+            } else {
+                this.skeleton.getNavigator().tryMoveToXYZ(
+                        this.targetPos.getX() + 0.5,
+                        this.targetPos.getY(),
+                        this.targetPos.getZ() + 0.5,
+                        0.8
+                );
+            }
         }
+    }
+
+    /**
+     * 判断 from → to 是否无方块阻挡
+     */
+    private boolean hasLineOfSight(Vec3d from, Vec3d to) {
+        // 使用 RAY_TRACE_BLOCKS 参数，只检测方块阻挡
+        RayTraceResult result = this.world.rayTraceBlocks(from, to, false, true, false);
+
+        if (result == null) {
+            return true; // 无阻挡
+        }
+
+        if (result.typeOfHit == RayTraceResult.Type.BLOCK) {
+            // 允许命中的方块就是目标方块（例如直接射箱子）
+            return result.getBlockPos().equals(this.targetPos);
+        }
+
+        // 其他情况视为阻挡
+        return false;
     }
 
     private void shootAtTarget() {
