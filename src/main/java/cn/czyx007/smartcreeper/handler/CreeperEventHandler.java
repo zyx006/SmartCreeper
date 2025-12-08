@@ -25,6 +25,7 @@ import net.neoforged.neoforge.event.entity.EntityJoinLevelEvent;
 import net.neoforged.neoforge.event.entity.ProjectileImpactEvent;
 import net.neoforged.neoforge.event.level.ExplosionEvent;
 
+import java.util.Iterator;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 public class CreeperEventHandler {
@@ -92,28 +93,48 @@ public class CreeperEventHandler {
     }
 
     private void modifyCreeperAI(Creeper creeper) {
-        // 移除原版爆炸AI和恐惧AI
-        for (WrappedGoal wrappedGoal : creeper.goalSelector.getAvailableGoals()) {
-            Goal goal = wrappedGoal.getGoal();
+        try {
+            Iterator<WrappedGoal> iterator = creeper.goalSelector.getAvailableGoals().iterator();
 
-            // 移除原版爆炸AI（SwellGoal）
-            if (goal.getClass().getSimpleName().contains("SwellGoal") ||
-                    goal.getClass().getSimpleName().contains("CreeperSwellGoal")) {
-                creeper.goalSelector.removeGoal(goal);
-            }
+            while (iterator.hasNext()) {
+                WrappedGoal wrappedGoal = iterator.next();
 
-            // 如果配置启用，移除对猫的恐惧AI
-            if (Config.FEARLESS_OF_CATS.get() && goal instanceof AvoidEntityGoal<?> avoidGoal) {
-                if (shouldRemoveCatFearAI(avoidGoal)) {
-                    creeper.goalSelector.removeGoal(goal);
+                // 添加空值检查
+                if (wrappedGoal == null) {
+                    SmartCreeper.LOGGER.warn("Found null WrappedGoal in creeper, skipping...");
+                    continue;
+                }
+
+                Goal goal = wrappedGoal.getGoal();
+
+                // 再次检查goal是否为null
+                if (goal == null) {
+                    SmartCreeper.LOGGER.warn("Found null goal in WrappedGoal, skipping...");
+                    continue;
+                }
+
+                // 移除原版爆炸AI（SwellGoal）
+                if (goal.getClass().getSimpleName().contains("SwellGoal") ||
+                        goal.getClass().getSimpleName().contains("CreeperSwellGoal")) {
+                    iterator.remove();
+                    continue;
+                }
+
+                // 如果配置启用，移除对猫的恐惧AI
+                if (Config.FEARLESS_OF_CATS.get() && goal instanceof AvoidEntityGoal<?> avoidGoal) {
+                    if (shouldRemoveCatFearAI(avoidGoal)) {
+                        iterator.remove();
+                    }
                 }
             }
-        }
 
-        // 添加我们的智能爆炸AI，优先级设为3（与原版相同）
-        SmartExplodeGoal smartGoal = new SmartExplodeGoal(creeper);
-        creeper.goalSelector.addGoal(3, smartGoal);
-        activeGoals.add(smartGoal);
+            // 添加我们的智能爆炸AI，优先级设为3（与原版相同）
+            SmartExplodeGoal smartGoal = new SmartExplodeGoal(creeper);
+            creeper.goalSelector.addGoal(3, smartGoal);
+            activeGoals.add(smartGoal);
+        } catch (Exception e) {
+            SmartCreeper.LOGGER.error("Failed to modify creeper AI", e);
+        }
     }
 
     private void modifySkeletonAI(AbstractSkeleton skeleton) {
