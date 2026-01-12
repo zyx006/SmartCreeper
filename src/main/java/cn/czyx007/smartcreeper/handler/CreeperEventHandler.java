@@ -100,17 +100,11 @@ public class CreeperEventHandler {
     }
 
     private void modifyCreeperAI(EntityCreeper creeper) {
-        // 移除原版爆炸AI和恐惧AI
+        // 移除原版恐惧AI
         Iterator<EntityAITasks.EntityAITaskEntry> iterator = creeper.tasks.taskEntries.iterator();
         while (iterator.hasNext()) {
             EntityAITasks.EntityAITaskEntry entry = iterator.next();
             EntityAIBase task = entry.action;
-
-            // 移除原版爆炸AI（EntityAICreeperSwell）
-            if (task.getClass().getSimpleName().contains("CreeperSwell") ||
-                    task.getClass().getSimpleName().contains("EntityAICreeperSwell")) {
-                iterator.remove();
-            }
 
             // 如果配置启用，移除对豹猫的恐惧AI
             if (Config.FEARLESS_OF_CATS && task instanceof EntityAIAvoidEntity) {
@@ -121,9 +115,9 @@ public class CreeperEventHandler {
             }
         }
 
-        // 添加我们的智能爆炸AI，优先级设为2（与原版相同）
+        // 添加我们的智能爆炸AI
         SmartExplodeGoal smartGoal = new SmartExplodeGoal(creeper);
-        creeper.tasks.addTask(2, smartGoal);
+        creeper.tasks.addTask(1, smartGoal);
         activeGoals.add(smartGoal);
     }
 
