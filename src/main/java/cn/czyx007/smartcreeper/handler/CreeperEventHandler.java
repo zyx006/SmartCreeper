@@ -113,13 +113,6 @@ public class CreeperEventHandler {
                     continue;
                 }
 
-                // 移除原版爆炸AI（SwellGoal）
-                if (goal.getClass().getSimpleName().contains("SwellGoal") ||
-                        goal.getClass().getSimpleName().contains("CreeperSwellGoal")) {
-                    iterator.remove();
-                    continue;
-                }
-
                 // 如果配置启用，移除对猫的恐惧AI
                 if (Config.FEARLESS_OF_CATS.get() && goal instanceof AvoidEntityGoal<?> avoidGoal) {
                     if (shouldRemoveCatFearAI(avoidGoal)) {
@@ -128,9 +121,9 @@ public class CreeperEventHandler {
                 }
             }
 
-            // 添加我们的智能爆炸AI，优先级设为3（与原版相同）
+            // 添加我们的智能爆炸AI
             SmartExplodeGoal smartGoal = new SmartExplodeGoal(creeper);
-            creeper.goalSelector.addGoal(3, smartGoal);
+            creeper.goalSelector.addGoal(1, smartGoal);
             activeGoals.add(smartGoal);
         } catch (Exception e) {
             SmartCreeper.LOGGER.error("Failed to modify creeper AI", e);
